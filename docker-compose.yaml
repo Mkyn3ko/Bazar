@@ -1,11 +1,53 @@
+version: "3.9"
+
 services:
-  frontend:
-    build: .
-    container_name: react_app
+  mysql:
+    image: mysql:8.0
+    container_name: tienda_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: tienda_db
+      MYSQL_USER: tienda_user
+      MYSQL_PASSWORD: tienda_pass
     ports:
-      - "3000:3000"
+      - "3307:3306"
     volumes:
-      - .:/app
+      - mysql_data:/var/lib/mysql
+      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  backend:
+    build: ./backend
+    container_name: tienda_backend
+    restart: always
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mysql
+    volumes:
+      - ./backend:/app
       - /app/node_modules
     environment:
-      - CHOKIDAR_USEPOLLING=true
+      PORT: 4000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: tienda_db
+      DB_USER: tienda_user
+      DB_PASSWORD: tienda_pass
+
+  frontend:
+    build: ./frontend
+    container_name: tienda_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
+
+volumes:
+  mysql_data:
